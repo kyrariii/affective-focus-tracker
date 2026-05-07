@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Affective Task Tracker</title>
+    <style>
+        /* Base Aesthetic: Minimalist, flat black, simple line art */
+        body {
+            background-color: #000000;
+            color: #ffffff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 480px;
+            padding: 20px;
+            border: 1px solid #ffffff;
+            position: relative;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* Burnout Alert Styling */
+        #burnoutAlert {
+            font-size: 0.7rem;
+            color: #ff4444;
+            border: 1px solid #ff4444;
+            padding: 4px 8px;
+            display: none;
+            border-radius: 3px;
+        }
+
+        .progress-container {
+            width: 100%;
+            height: 10px;
+            border: 1px solid #555555;
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background-color: #ffffff;
+            width: 0%;
+            transition: width 0.4s ease;
+        }
+
+        .input-group {
+            display: flex;
+            margin-bottom: 20px;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 10px;
+            background-color: #000000;
+            color: #ffffff;
+            border: 1px solid #ffffff;
+            outline: none;
+            transition: border-color 0.3s ease;
+        }
+
+        input[type="text"]:focus {
+            border-color: #888888;
+        }
+
+        input[type="text"]::placeholder {
+            color: #888888;
+        }
+
+        select {
+            background-color: #000000;
+            color: #ffffff;
+            border: 1px solid #ffffff;
+            border-left: none;
+            padding: 10px;
+            outline: none;
+            cursor: pointer;
+            text-transform: uppercase;
+            font-size: 0.8rem;
+        }
+
+        button {
+            padding: 10px 15px;
+            background-color: #000000;
+            color: #ffffff;
+            border: 1px solid #ffffff;
+            border-left: none;
+            cursor: pointer;
+            text-transform: uppercase;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #ffffff;
+            color: #000000;
+        }
+
+        ul {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        li {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            border: 1px solid #ffffff;
+            margin-bottom: 10px;
+            transition: all 0.3s ease;
+            border-left: 5px solid #ffffff;
+        }
+
+        li.priority-high { border-left-color: #ff4444; }
+        li.priority-med { border-left-color: #ffcc00; }
+        li.priority-low { border-left-color: #ffffff; }
+
+        li.completed {
+            text-decoration: line-through;
+            color: #555555;
+            border-color: #333333;
+            border-left-color: #333333;
+        }
+
+        /* Emotion Tag Styling */
+        .emotion-tag {
+            font-size: 0.7rem;
+            padding: 2px 6px;
+            margin-left: 10px;
+            border-radius: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            text-decoration: none !important;
+            display: inline-block;
+            user-select: none;
+        }
+
+        .emotion-stress { background-color: rgba(255, 68, 68, 0.2); color: #ff4444; border: 1px solid #ff4444;}
+        .emotion-relax { background-color: rgba(0, 200, 81, 0.2); color: #00c851; border: 1px solid #00c851;}
+        .emotion-neutral { border: 1px dashed #555555; color: #888888;}
+
+        .task-content {
+            flex: 1;
+            display: flex;
+            align-items: center;
+        }
+
+        .delete-btn {
+            background: none;
+            border: none;
+            color: #888888;
+            font-size: 1.2rem;
+            cursor: pointer;
+            padding: 0 5px;
+            transition: color 0.3s ease;
+        }
+
+        .delete-btn:hover {
+            color: #ffffff;
+        }
+
+        #emptyState {
+            text-align: center;
+            color: #888888;
+            font-size: 0.9rem;
+            margin-top: 20px;
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <h1>Tracker <span id="burnoutAlert">⚠️ High Cognitive Load</span></h1>
+
+        <div class="progress-container" aria-label="Task completion progress">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+
+        <div class="input-group">
+            <input type="text" id="taskInput" placeholder="Enter task..." maxlength="60" aria-label="New task input" autocomplete="off">
+
+            <select id="prioritySelect" aria-label="Task Priority">
+                <option value="high">High</option>
+                <option value="med">Med</option>
+                <option value="low" selected>Low</option>
+            </select>
+
+            <button onclick="addTask()" aria-label="Add task button">Add</button>
+        </div>
+
+        <ul id="taskList" aria-live="polite"></ul>
+        <div id="emptyState">All caught up. Add a task to begin.</div>
+    </div>
+
+    <script>
+        // --- 1. State Management ---
+        let tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+
+        // Load customized dictionary from storage, or use defaults for new users
+        const defaultLexicons = {
+            stress: ['urgent', 'deadline', 'boss', 'fail', 'fix', 'error', 'nightmare', 'asap', 'overdue', 'client', 'report', 'presentation'],
+            relax: ['plan', 'read', 'brainstorm', 'idea', 'coffee', 'learn', 'explore', 'creative', 'draft', 'review']
+        };
+        let lexicons = JSON.parse(localStorage.getItem('emotionLexicons')) || defaultLexicons;
+
+        // Words to ignore when learning (Stop Words)
+        const stopWords = ['the', 'is', 'at', 'which', 'on', 'and', 'a', 'to', 'for', 'of', 'in', 'with', 'my', 'it', 'do', 'make'];
+
+        // --- 2. Core AI Logic ---
+        function analyzeEmotion(taskString) {
+            const words = taskString.toLowerCase().split(/\W+/);
+            let stressScore = 0;
+            let relaxScore = 0;
+
+            words.forEach(word => {
+                if (lexicons.stress.includes(word)) stressScore++;
+                if (lexicons.relax.includes(word)) relaxScore++;
+            });
+
+            if (stressScore > relaxScore) return 'stress';
+            if (relaxScore > stressScore) return 'relax';
+            return 'neutral';
+        }
+
+        // HITL (Human-in-the-Loop) Training Function
+        function correctEmotion(index, currentEmotion) {
+            const task = tasks[index];
+            
+            // Cycle the emotion: stress -> relax -> neutral -> stress
+            let newEmotion = 'neutral';
+            if (currentEmotion === 'stress') newEmotion = 'relax';
+            if (currentEmotion === 'relax') newEmotion = 'neutral';
+            if (currentEmotion === 'neutral') newEmotion = 'stress';
+
+            // 1. Extract meaningful words from the task
+            const words = task.text.toLowerCase().split(/\W+/).filter(w => w.length > 2 && !stopWords.includes(w));
+
+            // 2. Adjust the dictionaries based on user feedback
+            words.forEach(word => {
+                // Remove the word from all dictionaries first to avoid conflicts
+                lexicons.stress = lexicons.stress.filter(w => w !== word);
+                lexicons.relax = lexicons.relax.filter(w => w !== word);
+                
+                // Add the word to the newly assigned dictionary (if not neutral)
+                if (newEmotion !== 'neutral') {
+                    lexicons[newEmotion].push(word);
+                }
+            });
+
+            // 3. Save the newly learned vocabulary
+            localStorage.setItem('emotionLexicons', JSON.stringify(lexicons));
+            
+            // 4. Update the task and UI
+            tasks[index].emotion = newEmotion;
+            saveAndRender();
+            
+            console.log("AI Learned new vocabulary!", lexicons);
+        }
+
+        // --- 3. UI and Rendering ---
+        function updateProgress() {
+            const progressFill = document.getElementById('progressFill');
+            if (tasks.length === 0) {
+                progressFill.style.width = '0%';
+                return;
+            }
+            const completedTasks = tasks.filter(task => task.completed).length;
+            const percentage = (completedTasks / tasks.length) * 100;
+            progressFill.style.width = percentage + '%';
+        }
+
+        function checkBurnoutLevel() {
+            const alertBadge = document.getElementById('burnoutAlert');
+            const stressfulTasks = tasks.filter(t => !t.completed && t.emotion === 'stress').length;
+            alertBadge.style.display = stressfulTasks >= 2 ? 'block' : 'none';
+        }
+
+        function renderTasks() {
+            const taskList = document.getElementById('taskList');
+            const emptyState = document.getElementById('emptyState');
+            taskList.innerHTML = '';
+
+            emptyState.style.display = tasks.length === 0 ? 'block' : 'none';
+
+            tasks.forEach((task, index) => {
+                const li = document.createElement('li');
+                if (task.completed) li.classList.add('completed');
+                li.classList.add(`priority-${task.priority}`);
+
+                const taskContent = document.createElement('div');
+                taskContent.className = 'task-content';
+                
+                let innerHtml = `<span onclick="toggleTask(${index})" style="flex:1; cursor:pointer;">${task.text}</span>`;
+                
+                // Render Interactive Emotion Tags
+                if (!task.completed) {
+                    let tagClass = '';
+                    let tagLabel = '';
+                    
+                    if (task.emotion === 'stress') {
+                        tagClass = 'emotion-stress';
+                        tagLabel = 'High Stress';
+                    } else if (task.emotion === 'relax') {
+                        tagClass = 'emotion-relax';
+                        tagLabel = 'Low Stress';
+                    } else {
+                        tagClass = 'emotion-neutral';
+                        tagLabel = 'Neutral';
+                    }
+
+                    innerHtml += `<span class="emotion-tag ${tagClass}" style="cursor:pointer;" 
+                                        onclick="correctEmotion(${index}, '${task.emotion}')" 
+                                        title="Click to correct AI prediction">${tagLabel}</span>`;
+                }
+
+                taskContent.innerHTML = innerHtml;
+
+                const deleteBtn = document.createElement('button');
+                deleteBtn.innerHTML = '×';
+                deleteBtn.className = 'delete-btn';
+                deleteBtn.onclick = (e) => {
+                    e.stopPropagation(); // Prevent triggering task completion
+                    deleteTask(index);
+                };
+
+                li.appendChild(taskContent);
+                li.appendChild(deleteBtn);
+                taskList.appendChild(li);
+            });
+
+            updateProgress();
+            checkBurnoutLevel();
+        }
+
+        // --- 4. CRUD Operations ---
+        function addTask() {
+            const input = document.getElementById('taskInput');
+            const prioritySelect = document.getElementById('prioritySelect');
+            const text = input.value.trim();
+            const priority = prioritySelect.value;
+
+            if (text !== '') {
+                const detectedEmotion = analyzeEmotion(text);
+                tasks.push({ 
+                    text: text, 
+                    completed: false, 
+                    priority: priority,
+                    emotion: detectedEmotion
+                });
+                input.value = '';
+                saveAndRender();
+            }
+        }
+
+        function toggleTask(index) {
+            tasks[index].completed = !tasks[index].completed;
+            saveAndRender();
+        }
+
+        function deleteTask(index) {
+            tasks.splice(index, 1);
+            saveAndRender();
+        }
+
+        function saveAndRender() {
+            localStorage.setItem('tasks', JSON.stringify(tasks));
+            renderTasks();
+        }
+
+        // Event Listener for Enter key
+        document.getElementById('taskInput').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') addTask();
+        });
+
+        // Initial render on load
+        renderTasks();
+    </script>
+</body>
+
+</html>
