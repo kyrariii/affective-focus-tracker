@@ -1,401 +1,351 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Affective Task Tracker</title>
+    <meta name="description" content="A simple, human-centered task tracker that helps manage your mental energy.">
+    <title>Focus Tracker</title>
     <style>
-        /* Base Aesthetic: Minimalist, flat black, simple line art */
+        :root {
+            --bg: #000000;
+            --text: #ffffff;
+            --border: #ffffff;
+            --muted: #666666;
+            --surface: #111111;
+            --accent-stress: #ff4444;
+            --accent-relax: #00c851;
+            --completed-text: #888888;
+            --transition: 0.25s ease;
+        }
+
+        [data-theme="light"] {
+            --bg: #ffffff;
+            --text: #000000;
+            --border: #000000;
+            --muted: #cccccc;
+            --surface: #f9f9f9;
+            --completed-text: #bbbbbb;
+        }
+
         body {
-            background-color: #000000;
-            color: #ffffff;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: 'Inter', -apple-system, sans-serif;
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
+            min-height: 100vh;
             margin: 0;
+            padding: 20px;
+            transition: background var(--transition);
         }
 
         .container {
             width: 100%;
-            max-width: 480px;
-            padding: 20px;
-            border: 1px solid #ffffff;
-            position: relative;
+            max-width: 500px;
+            height: 720px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
         }
 
-        h1 {
-            font-size: 1.5rem;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            margin-bottom: 10px;
+        header {
             display: flex;
             justify-content: space-between;
             align-items: center;
+            margin-bottom: 20px;
         }
 
-        /* Burnout Alert Styling */
+        h1 { font-size: 1.3rem; text-transform: uppercase; letter-spacing: 3px; margin: 0; font-weight: 800; }
+
         #burnoutAlert {
             font-size: 0.7rem;
-            color: #ff4444;
-            border: 1px solid #ff4444;
-            padding: 4px 8px;
-            display: none;
-            border-radius: 3px;
-        }
-
-        .progress-container {
-            width: 100%;
-            height: 10px;
-            border: 1px solid #555555;
-            margin-bottom: 20px;
-            position: relative;
-        }
-
-        .progress-fill {
-            height: 100%;
-            background-color: #ffffff;
-            width: 0%;
-            transition: width 0.4s ease;
-        }
-
-        .input-group {
-            display: flex;
-            margin-bottom: 20px;
-        }
-
-        input[type="text"] {
-            flex: 1;
-            padding: 10px;
-            background-color: #000000;
-            color: #ffffff;
-            border: 1px solid #ffffff;
-            outline: none;
-            transition: border-color 0.3s ease;
-        }
-
-        input[type="text"]:focus {
-            border-color: #888888;
-        }
-
-        input[type="text"]::placeholder {
-            color: #888888;
-        }
-
-        select {
-            background-color: #000000;
-            color: #ffffff;
-            border: 1px solid #ffffff;
-            border-left: none;
-            padding: 10px;
-            outline: none;
-            cursor: pointer;
-            text-transform: uppercase;
-            font-size: 0.8rem;
-        }
-
-        button {
-            padding: 10px 15px;
-            background-color: #000000;
-            color: #ffffff;
-            border: 1px solid #ffffff;
-            border-left: none;
-            cursor: pointer;
-            text-transform: uppercase;
             font-weight: bold;
-            transition: all 0.3s ease;
-        }
-
-        button:hover {
-            background-color: #ffffff;
-            color: #000000;
-        }
-
-        ul {
-            list-style-type: none;
-            padding: 0;
-            margin: 0;
-        }
-
-        li {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 10px;
-            border: 1px solid #ffffff;
-            margin-bottom: 10px;
-            transition: all 0.3s ease;
-            border-left: 5px solid #ffffff;
-        }
-
-        li.priority-high { border-left-color: #ff4444; }
-        li.priority-med { border-left-color: #ffcc00; }
-        li.priority-low { border-left-color: #ffffff; }
-
-        li.completed {
-            text-decoration: line-through;
-            color: #555555;
-            border-color: #333333;
-            border-left-color: #333333;
-        }
-
-        /* Emotion Tag Styling */
-        .emotion-tag {
-            font-size: 0.7rem;
-            padding: 2px 6px;
-            margin-left: 10px;
-            border-radius: 12px;
+            color: var(--accent-stress);
+            border: 1px solid var(--accent-stress);
+            padding: 6px 12px;
+            display: none;
+            border-radius: 2px;
             text-transform: uppercase;
             letter-spacing: 1px;
-            text-decoration: none !important;
-            display: inline-block;
-            user-select: none;
         }
 
-        .emotion-stress { background-color: rgba(255, 68, 68, 0.2); color: #ff4444; border: 1px solid #ff4444;}
-        .emotion-relax { background-color: rgba(0, 200, 81, 0.2); color: #00c851; border: 1px solid #00c851;}
-        .emotion-neutral { border: 1px dashed #555555; color: #888888;}
+        /* B&W Theme Toggle */
+        .theme-switch { position: relative; width: 54px; height: 28px; cursor: pointer; }
+        .theme-switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background-color: var(--muted); border-radius: 34px; transition: var(--transition);
+        }
+        .slider:before {
+            position: absolute; content: "●"; display: flex; align-items: center; justify-content: center;
+            color: var(--bg); font-size: 18px; height: 22px; width: 22px; left: 3px; bottom: 3px;
+            background-color: var(--text); border-radius: 50%; transition: var(--transition);
+        }
+        input:checked + .slider { background-color: var(--muted); }
+        input:checked + .slider:before { transform: translateX(26px); }
 
-        .task-content {
-            flex: 1;
-            display: flex;
-            align-items: center;
+        .progress-container {
+            width: 100%; height: 4px; background: var(--muted); margin-bottom: 24px; border-radius: 2px; overflow: hidden;
+        }
+        .progress-fill { height: 100%; background-color: var(--text); width: 0%; transition: width 0.6s ease; }
+
+        .input-area { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 15px; }
+        .input-area input[type="text"] { grid-column: span 2; }
+        input, select, button {
+            background-color: var(--bg); color: var(--text); border: 1px solid var(--border);
+            padding: 12px; font-size: 0.85rem; outline: none; border-radius: 0;
+        }
+        
+        .add-btn { background: var(--text); color: var(--bg); font-weight: 800; grid-column: span 2; cursor: pointer; text-transform: uppercase; }
+
+        .toolbar-top {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 8px;
+            margin-bottom: 8px;
         }
 
-        .delete-btn {
-            background: none;
-            border: none;
-            color: #888888;
-            font-size: 1.2rem;
-            cursor: pointer;
-            padding: 0 5px;
-            transition: color 0.3s ease;
+        .toolbar-bottom {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 20px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--muted);
         }
 
-        .delete-btn:hover {
-            color: #ffffff;
-        }
+        .btn-sm { font-size: 0.7rem; padding: 10px; text-align: center; cursor: pointer; text-transform: uppercase; }
 
-        #emptyState {
-            text-align: center;
-            color: #888888;
-            font-size: 0.9rem;
-            margin-top: 20px;
-            display: none;
+        #taskList { list-style: none; padding: 0; margin: 0; overflow-y: auto; flex-grow: 1; }
+        #taskList::-webkit-scrollbar { width: 4px; }
+        #taskList::-webkit-scrollbar-thumb { background: var(--muted); }
+
+        li {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 16px; border: 1px solid var(--border); margin-bottom: 12px;
+            border-left: 6px solid var(--border); background: var(--surface);
+            cursor: grab;
         }
+        li.dragging { opacity: 0.4; border: 2px dashed var(--muted); }
+        li.priority-high { border-left-color: var(--accent-stress); }
+        li.priority-med { border-left-color: #ffcc00; }
+        li.completed { opacity: 0.5; background: transparent; }
+        li.completed .task-text { text-decoration: line-through; color: var(--completed-text); }
+
+        .emotion-tag {
+            font-size: 0.6rem; font-weight: bold; padding: 4px 8px;
+            text-transform: uppercase; border-radius: 0; border: 1px solid var(--muted); margin-left: 12px;
+        }
+        .emotion-stress { color: var(--accent-stress); border-color: var(--accent-stress); }
+        .emotion-relax { color: var(--accent-relax); border-color: var(--accent-relax); }
+
+        .delete-btn { border: none; color: var(--muted); font-size: 1.4rem; cursor: pointer; background:none; }
     </style>
 </head>
-
 <body>
 
-    <div class="container">
-        <h1>Tracker <span id="burnoutAlert">⚠️ High Cognitive Load</span></h1>
+<main class="container">
+    <header>
+        <h1>Tracker</h1>
+        <div id="burnoutAlert" role="alert">Focus Warning</div>
+        <label class="theme-switch" title="Toggle Appearance">
+            <input type="checkbox" id="themeToggle" onchange="toggleTheme()">
+            <span class="slider"></span>
+        </label>
+    </header>
 
-        <div class="progress-container" aria-label="Task completion progress">
-            <div class="progress-fill" id="progressFill"></div>
-        </div>
+    <div class="progress-container"><div class="progress-fill" id="progressFill"></div></div>
 
-        <div class="input-group">
-            <input type="text" id="taskInput" placeholder="Enter task..." maxlength="60" aria-label="New task input" autocomplete="off">
+    <section class="input-area">
+        <input type="text" id="taskInput" placeholder="What is on your mind?" maxlength="60">
+        <input type="date" id="dateInput" title="When is this due?">
+        <select id="prioritySelect">
+            <option value="high">High Importance</option>
+            <option value="med">Medium Importance</option>
+            <option value="low" selected>Low Importance</option>
+        </select>
+        <button class="add-btn" onclick="addTask()">Track New Task</button>
+    </section>
 
-            <select id="prioritySelect" aria-label="Task Priority">
-                <option value="high">High</option>
-                <option value="med">Med</option>
-                <option value="low" selected>Low</option>
-            </select>
+    <nav class="toolbar-top">
+        <select class="btn-sm" id="sortSelect" onchange="sortTasks()">
+            <option value="manual">My Manual Order</option>
+            <option value="balanced">Balanced Workload</option>
+            <option value="date">Sort by Due Date</option>
+            <option value="priority">Sort by Importance</option>
+            <option value="emotion">Sort by Stress Level</option>
+        </select>
+        <button class="btn-sm" onclick="clearCompleted()">Clear Finished</button>
+    </nav>
 
-            <button onclick="addTask()" aria-label="Add task button">Add</button>
-        </div>
+    <nav class="toolbar-bottom">
+        <button class="btn-sm" onclick="exportData()">Save to File</button>
+        <button class="btn-sm" onclick="document.getElementById('importFile').click()">Load from File</button>
+        <input type="file" id="importFile" hidden onchange="importData(event)">
+    </nav>
 
-        <ul id="taskList" aria-live="polite"></ul>
-        <div id="emptyState">All caught up. Add a task to begin.</div>
-    </div>
+    <ul id="taskList"></ul>
+    <div id="emptyState" style="text-align:center; color:gray; display:none; margin-top:40px;">Your mind is clear. Add a task to begin.</div>
+</main>
 
-    <script>
-        // --- 1. State Management ---
-        let tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+<script>
+    let tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+    const nudgeMessages = ["Take a breather?", "Hydrate first?", "Step away for 5?", "Stretch a bit?"];
+    
+    if(localStorage.getItem('theme') === 'light') {
+        document.body.setAttribute('data-theme', 'light');
+        document.getElementById('themeToggle').checked = true;
+    }
 
-        // Load customized dictionary from storage, or use defaults for new users
-        const defaultLexicons = {
-            stress: ['urgent', 'deadline', 'boss', 'fail', 'fix', 'error', 'nightmare', 'asap', 'overdue', 'client', 'report', 'presentation'],
-            relax: ['plan', 'read', 'brainstorm', 'idea', 'coffee', 'learn', 'explore', 'creative', 'draft', 'review']
-        };
-        let lexicons = JSON.parse(localStorage.getItem('emotionLexicons')) || defaultLexicons;
+    const lexicons = {
+        stress: ['urgent', 'deadline', 'boss', 'fail', 'fix', 'error', 'asap', 'overdue', 'report'],
+        relax: ['plan', 'read', 'brainstorm', 'idea', 'coffee', 'learn', 'explore', 'draft']
+    };
 
-        // Words to ignore when learning (Stop Words)
-        const stopWords = ['the', 'is', 'at', 'which', 'on', 'and', 'a', 'to', 'for', 'of', 'in', 'with', 'my', 'it', 'do', 'make'];
+    function toggleTheme() {
+        const mode = document.getElementById('themeToggle').checked ? 'light' : 'dark';
+        document.body.setAttribute('data-theme', mode);
+        localStorage.setItem('theme', mode);
+    }
 
-        // --- 2. Core AI Logic ---
-        function analyzeEmotion(taskString) {
-            const words = taskString.toLowerCase().split(/\W+/);
-            let stressScore = 0;
-            let relaxScore = 0;
-
-            words.forEach(word => {
-                if (lexicons.stress.includes(word)) stressScore++;
-                if (lexicons.relax.includes(word)) relaxScore++;
-            });
-
-            if (stressScore > relaxScore) return 'stress';
-            if (relaxScore > stressScore) return 'relax';
-            return 'neutral';
-        }
-
-        // HITL (Human-in-the-Loop) Training Function
-        function correctEmotion(index, currentEmotion) {
-            const task = tasks[index];
-            
-            // Cycle the emotion: stress -> relax -> neutral -> stress
-            let newEmotion = 'neutral';
-            if (currentEmotion === 'stress') newEmotion = 'relax';
-            if (currentEmotion === 'relax') newEmotion = 'neutral';
-            if (currentEmotion === 'neutral') newEmotion = 'stress';
-
-            // 1. Extract meaningful words from the task
-            const words = task.text.toLowerCase().split(/\W+/).filter(w => w.length > 2 && !stopWords.includes(w));
-
-            // 2. Adjust the dictionaries based on user feedback
-            words.forEach(word => {
-                // Remove the word from all dictionaries first to avoid conflicts
-                lexicons.stress = lexicons.stress.filter(w => w !== word);
-                lexicons.relax = lexicons.relax.filter(w => w !== word);
-                
-                // Add the word to the newly assigned dictionary (if not neutral)
-                if (newEmotion !== 'neutral') {
-                    lexicons[newEmotion].push(word);
-                }
-            });
-
-            // 3. Save the newly learned vocabulary
-            localStorage.setItem('emotionLexicons', JSON.stringify(lexicons));
-            
-            // 4. Update the task and UI
-            tasks[index].emotion = newEmotion;
-            saveAndRender();
-            
-            console.log("AI Learned new vocabulary!", lexicons);
-        }
-
-        // --- 3. UI and Rendering ---
-        function updateProgress() {
-            const progressFill = document.getElementById('progressFill');
-            if (tasks.length === 0) {
-                progressFill.style.width = '0%';
-                return;
-            }
-            const completedTasks = tasks.filter(task => task.completed).length;
-            const percentage = (completedTasks / tasks.length) * 100;
-            progressFill.style.width = percentage + '%';
-        }
-
-        function checkBurnoutLevel() {
-            const alertBadge = document.getElementById('burnoutAlert');
-            const stressfulTasks = tasks.filter(t => !t.completed && t.emotion === 'stress').length;
-            alertBadge.style.display = stressfulTasks >= 2 ? 'block' : 'none';
-        }
-
-        function renderTasks() {
-            const taskList = document.getElementById('taskList');
-            const emptyState = document.getElementById('emptyState');
-            taskList.innerHTML = '';
-
-            emptyState.style.display = tasks.length === 0 ? 'block' : 'none';
-
-            tasks.forEach((task, index) => {
-                const li = document.createElement('li');
-                if (task.completed) li.classList.add('completed');
-                li.classList.add(`priority-${task.priority}`);
-
-                const taskContent = document.createElement('div');
-                taskContent.className = 'task-content';
-                
-                let innerHtml = `<span onclick="toggleTask(${index})" style="flex:1; cursor:pointer;">${task.text}</span>`;
-                
-                // Render Interactive Emotion Tags
-                if (!task.completed) {
-                    let tagClass = '';
-                    let tagLabel = '';
-                    
-                    if (task.emotion === 'stress') {
-                        tagClass = 'emotion-stress';
-                        tagLabel = 'High Stress';
-                    } else if (task.emotion === 'relax') {
-                        tagClass = 'emotion-relax';
-                        tagLabel = 'Low Stress';
-                    } else {
-                        tagClass = 'emotion-neutral';
-                        tagLabel = 'Neutral';
-                    }
-
-                    innerHtml += `<span class="emotion-tag ${tagClass}" style="cursor:pointer;" 
-                                        onclick="correctEmotion(${index}, '${task.emotion}')" 
-                                        title="Click to correct AI prediction">${tagLabel}</span>`;
-                }
-
-                taskContent.innerHTML = innerHtml;
-
-                const deleteBtn = document.createElement('button');
-                deleteBtn.innerHTML = '×';
-                deleteBtn.className = 'delete-btn';
-                deleteBtn.onclick = (e) => {
-                    e.stopPropagation(); // Prevent triggering task completion
-                    deleteTask(index);
-                };
-
-                li.appendChild(taskContent);
-                li.appendChild(deleteBtn);
-                taskList.appendChild(li);
-            });
-
-            updateProgress();
-            checkBurnoutLevel();
-        }
-
-        // --- 4. CRUD Operations ---
-        function addTask() {
-            const input = document.getElementById('taskInput');
-            const prioritySelect = document.getElementById('prioritySelect');
-            const text = input.value.trim();
-            const priority = prioritySelect.value;
-
-            if (text !== '') {
-                const detectedEmotion = analyzeEmotion(text);
-                tasks.push({ 
-                    text: text, 
-                    completed: false, 
-                    priority: priority,
-                    emotion: detectedEmotion
-                });
-                input.value = '';
-                saveAndRender();
-            }
-        }
-
-        function toggleTask(index) {
-            tasks[index].completed = !tasks[index].completed;
-            saveAndRender();
-        }
-
-        function deleteTask(index) {
-            tasks.splice(index, 1);
-            saveAndRender();
-        }
-
-        function saveAndRender() {
-            localStorage.setItem('tasks', JSON.stringify(tasks));
-            renderTasks();
-        }
-
-        // Event Listener for Enter key
-        document.getElementById('taskInput').addEventListener('keypress', function (e) {
-            if (e.key === 'Enter') addTask();
+    function analyzeEmotion(str) {
+        const words = str.toLowerCase().split(/\W+/);
+        let s = 0, r = 0;
+        words.forEach(w => {
+            if (lexicons.stress.includes(w)) s++;
+            if (lexicons.relax.includes(w)) r++;
         });
+        return s > r ? 'stress' : (r > s ? 'relax' : 'neutral');
+    }
 
-        // Initial render on load
-        renderTasks();
-    </script>
+    function addTask() {
+        const input = document.getElementById('taskInput');
+        const dInput = document.getElementById('dateInput');
+        if (input.value.trim()) {
+            tasks.push({
+                text: input.value.trim(),
+                date: dInput.value || "No date set",
+                priority: document.getElementById('prioritySelect').value,
+                completed: false,
+                emotion: analyzeEmotion(input.value)
+            });
+            input.value = ''; dInput.value = '';
+            saveAndRender();
+        }
+    }
+
+    function sortTasks() {
+        const mode = document.getElementById('sortSelect').value;
+        if (mode === 'balanced') {
+            balanceWorkload();
+        } else if (mode === 'date') {
+            tasks.sort((a, b) => (a.date === "No date set") ? 1 : (b.date === "No date set") ? -1 : new Date(a.date) - new Date(b.date));
+            saveAndRender();
+        } else if (mode === 'priority') {
+            const w = {high: 1, med: 2, low: 3};
+            tasks.sort((a, b) => w[a.priority] - w[b.priority]);
+            saveAndRender();
+        } else if (mode === 'emotion') {
+            const w = {stress: 1, neutral: 2, relax: 3};
+            tasks.sort((a, b) => w[a.emotion] - w[b.emotion]);
+            saveAndRender();
+        }
+    }
+
+    function balanceWorkload() {
+        const stress = tasks.filter(t => t.emotion === 'stress' && !t.completed);
+        const others = tasks.filter(t => t.emotion !== 'stress' && !t.completed);
+        let balanced = [];
+        while(stress.length || others.length) {
+            if(stress.length) balanced.push(stress.shift());
+            if(others.length) balanced.push(others.shift());
+        }
+        tasks = [...balanced, ...tasks.filter(t => t.completed)];
+        saveAndRender();
+    }
+
+    function clearCompleted() { tasks = tasks.filter(t => !t.completed); saveAndRender(); }
+    function exportData() {
+        const blob = new Blob([JSON.stringify(tasks)], {type: 'application/json'});
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'my_focus_plan.json'; a.click();
+    }
+    function importData(e) {
+        const reader = new FileReader();
+        reader.onload = (ev) => { tasks = JSON.parse(ev.target.result); saveAndRender(); };
+        reader.readAsText(e.target.files[0]);
+    }
+
+    function initDragAndDrop() {
+        const list = document.getElementById('taskList');
+        list.addEventListener('dragover', e => {
+            e.preventDefault();
+            const dragging = document.querySelector('.dragging');
+            const afterElement = [...list.querySelectorAll('li:not(.dragging)')].reduce((closest, child) => {
+                const box = child.getBoundingClientRect();
+                const offset = e.clientY - box.top - box.height / 2;
+                return offset < 0 && offset > closest.offset ? { offset, element: child } : closest;
+            }, { offset: Number.NEGATIVE_INFINITY }).element;
+            if (!afterElement) list.appendChild(dragging); else list.insertBefore(dragging, afterElement);
+        });
+        list.addEventListener('drop', () => {
+            const newOrder = [...list.querySelectorAll('li')].map(li => tasks[li.dataset.index]);
+            tasks = newOrder;
+            localStorage.setItem('tasks', JSON.stringify(tasks));
+            document.getElementById('sortSelect').value = 'manual';
+        });
+    }
+
+    function renderTasks() {
+        const list = document.getElementById('taskList');
+        list.innerHTML = '';
+        tasks.forEach((t, i) => {
+            const li = document.createElement('li');
+            li.draggable = true; li.dataset.index = i;
+            li.className = `${t.completed ? 'completed' : ''} priority-${t.priority}`;
+            li.addEventListener('dragstart', () => li.classList.add('dragging'));
+            li.addEventListener('dragend', () => { li.classList.remove('dragging'); renderTasks(); });
+            
+            const label = t.emotion === 'stress' ? 'High Stress' : (t.emotion === 'relax' ? 'Low Stress' : 'Neutral');
+            li.innerHTML = `
+                <div style="flex:1" onclick="toggleTask(${i})">
+                    <div class="task-text" style="font-size:0.95rem; font-weight:500;">${t.text}</div>
+                    <small style="font-size:0.65rem; color:gray; margin-top:4px; display:block;">${t.date}</small>
+                </div>
+                <span class="emotion-tag emotion-${t.emotion}">${label}</span>
+                <button class="delete-btn" onclick="deleteTask(${i})" title="Remove">×</button>
+            `;
+            list.appendChild(li);
+        });
+        updateUI();
+    }
+
+    function toggleTask(i) { tasks[i].completed = !tasks[i].completed; saveAndRender(); }
+    function deleteTask(i) { tasks.splice(i, 1); saveAndRender(); }
+    function saveAndRender() { localStorage.setItem('tasks', JSON.stringify(tasks)); renderTasks(); }
+    
+    function updateUI() {
+        const prog = tasks.length ? (tasks.filter(t => t.completed).length / tasks.length) * 100 : 0;
+        document.getElementById('progressFill').style.width = prog + '%';
+        
+        const stressCount = tasks.filter(t => !t.completed && t.emotion === 'stress').length;
+        const alertBox = document.getElementById('burnoutAlert');
+        if (stressCount >= 3) {
+            alertBox.textContent = nudgeMessages[Math.floor(Math.random() * nudgeMessages.length)];
+            alertBox.style.display = 'block';
+        } else {
+            alertBox.style.display = 'none';
+        }
+        document.getElementById('emptyState').style.display = tasks.length ? 'none' : 'block';
+    }
+
+    initDragAndDrop();
+    renderTasks();
+</script>
 </body>
-
 </html>
