@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="A simple, human-centered task tracker that helps manage your mental energy.">
+    <meta name="description" content="A human-centered task tracker with HITL AI for mental energy management.">
     <title>Focus Tracker</title>
     <style>
         :root {
@@ -73,7 +73,6 @@
             letter-spacing: 1px;
         }
 
-        /* B&W Theme Toggle */
         .theme-switch { position: relative; width: 54px; height: 28px; cursor: pointer; }
         .theme-switch input { opacity: 0; width: 0; height: 0; }
         .slider {
@@ -139,6 +138,7 @@
         .emotion-tag {
             font-size: 0.6rem; font-weight: bold; padding: 4px 8px;
             text-transform: uppercase; border-radius: 0; border: 1px solid var(--muted); margin-left: 12px;
+            cursor: pointer; user-select: none;
         }
         .emotion-stress { color: var(--accent-stress); border-color: var(--accent-stress); }
         .emotion-relax { color: var(--accent-relax); border-color: var(--accent-relax); }
@@ -162,7 +162,7 @@
 
     <section class="input-area">
         <input type="text" id="taskInput" placeholder="What is on your mind?" maxlength="60">
-        <input type="date" id="dateInput" title="When is this due?">
+        <input type="date" id="dateInput">
         <select id="prioritySelect">
             <option value="high">High Importance</option>
             <option value="med">Medium Importance</option>
@@ -173,7 +173,7 @@
 
     <nav class="toolbar-top">
         <select class="btn-sm" id="sortSelect" onchange="sortTasks()">
-            <option value="manual">My Manual Order</option>
+            <option value="manual">Manual Order</option>
             <option value="balanced">Balanced Workload</option>
             <option value="date">Sort by Due Date</option>
             <option value="priority">Sort by Importance</option>
@@ -189,19 +189,20 @@
     </nav>
 
     <ul id="taskList"></ul>
-    <div id="emptyState" style="text-align:center; color:gray; display:none; margin-top:40px;">Your mind is clear. Add a task to begin.</div>
+    <div id="emptyState" style="text-align:center; color:gray; display:none; margin-top:40px;">Your mind is clear.</div>
 </main>
 
 <script>
     let tasks = JSON.parse(localStorage.getItem('tasks')) || [];
     const nudgeMessages = ["Take a breather?", "Hydrate first?", "Step away for 5?", "Stretch a bit?"];
+    const stopWords = ['the', 'is', 'at', 'which', 'on', 'and', 'a', 'to', 'for', 'of', 'in', 'with', 'my', 'it', 'do', 'make'];
     
     if(localStorage.getItem('theme') === 'light') {
         document.body.setAttribute('data-theme', 'light');
         document.getElementById('themeToggle').checked = true;
     }
 
-    const lexicons = {
+    let lexicons = JSON.parse(localStorage.getItem('emotionLexicons')) || {
         stress: ['urgent', 'deadline', 'boss', 'fail', 'fix', 'error', 'asap', 'overdue', 'report'],
         relax: ['plan', 'read', 'brainstorm', 'idea', 'coffee', 'learn', 'explore', 'draft']
     };
@@ -220,6 +221,30 @@
             if (lexicons.relax.includes(w)) r++;
         });
         return s > r ? 'stress' : (r > s ? 'relax' : 'neutral');
+    }
+
+    // HITL Learning Function
+    function correctEmotion(index, currentEmotion) {
+        const task = tasks[index];
+        let newEmotion = currentEmotion === 'stress' ? 'relax' : (currentEmotion === 'relax' ? 'neutral' : 'stress');
+
+        // Extract words from the task string
+        const words = task.text.toLowerCase().split(/\W+/).filter(w => w.length > 2 && !stopWords.includes(w));
+
+        words.forEach(word => {
+            // Clean old associations
+            lexicons.stress = lexicons.stress.filter(w => w !== word);
+            lexicons.relax = lexicons.relax.filter(w => w !== word);
+            
+            // Learn new association
+            if (newEmotion !== 'neutral') {
+                lexicons[newEmotion].push(word);
+            }
+        });
+
+        localStorage.setItem('emotionLexicons', JSON.stringify(lexicons));
+        tasks[index].emotion = newEmotion;
+        saveAndRender();
     }
 
     function addTask() {
@@ -241,7 +266,15 @@
     function sortTasks() {
         const mode = document.getElementById('sortSelect').value;
         if (mode === 'balanced') {
-            balanceWorkload();
+            const stress = tasks.filter(t => t.emotion === 'stress' && !t.completed);
+            const others = tasks.filter(t => t.emotion !== 'stress' && !t.completed);
+            let balanced = [];
+            while(stress.length || others.length) {
+                if(stress.length) balanced.push(stress.shift());
+                if(others.length) balanced.push(others.shift());
+            }
+            tasks = [...balanced, ...tasks.filter(t => t.completed)];
+            saveAndRender();
         } else if (mode === 'date') {
             tasks.sort((a, b) => (a.date === "No date set") ? 1 : (b.date === "No date set") ? -1 : new Date(a.date) - new Date(b.date));
             saveAndRender();
@@ -256,24 +289,12 @@
         }
     }
 
-    function balanceWorkload() {
-        const stress = tasks.filter(t => t.emotion === 'stress' && !t.completed);
-        const others = tasks.filter(t => t.emotion !== 'stress' && !t.completed);
-        let balanced = [];
-        while(stress.length || others.length) {
-            if(stress.length) balanced.push(stress.shift());
-            if(others.length) balanced.push(others.shift());
-        }
-        tasks = [...balanced, ...tasks.filter(t => t.completed)];
-        saveAndRender();
-    }
-
     function clearCompleted() { tasks = tasks.filter(t => !t.completed); saveAndRender(); }
     function exportData() {
         const blob = new Blob([JSON.stringify(tasks)], {type: 'application/json'});
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
-        a.download = 'my_focus_plan.json'; a.click();
+        a.download = 'focus_tasks.json'; a.click();
     }
     function importData(e) {
         const reader = new FileReader();
@@ -317,7 +338,7 @@
                     <div class="task-text" style="font-size:0.95rem; font-weight:500;">${t.text}</div>
                     <small style="font-size:0.65rem; color:gray; margin-top:4px; display:block;">${t.date}</small>
                 </div>
-                <span class="emotion-tag emotion-${t.emotion}">${label}</span>
+                <span class="emotion-tag emotion-${t.emotion}" onclick="event.stopPropagation(); correctEmotion(${i}, '${t.emotion}')" title="Click to teach the AI">${label}</span>
                 <button class="delete-btn" onclick="deleteTask(${i})" title="Remove">×</button>
             `;
             list.appendChild(li);
